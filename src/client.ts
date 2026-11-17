@@ -1,6 +1,6 @@
 import type {
-  AcknowledgeRewardRequest,
-  AcknowledgeRewardResponse,
+  AcknowledgementRewardRequest,
+  AcknowledgementRewardResponse,
   ApiSuccess,
   ClaimRewardsRequest,
   CreateOrderRequest,
@@ -47,6 +47,9 @@ export class CoreApiClient {
   private readonly timeoutMs: number;
 
   constructor(options: CoreApiClientOptions) {
+    if (!options || typeof options.baseUrl !== "string") {
+      throw new TypeError("CoreApiClient requires a valid configuration object with baseUrl.");
+    }
     const parsed = new URL(options.baseUrl);
     const localHttp = parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname);
     if (parsed.protocol !== "https:" && !localHttp) {
@@ -98,7 +101,8 @@ export class CoreApiClient {
   }
 
   async getProducts(currency = "USD"): Promise<ApiSuccess<Product[]>> {
-    return this.request(`/catalog/products?currency=${encodeURIComponent(currency.toUpperCase())}`);
+    const safeCurrency = encodeURIComponent(currency.trim().toUpperCase());
+    return this.request(`/catalog/products?currency=${safeCurrency}`);
   }
 
   async getServers(): Promise<ApiSuccess<GameServerStatus[]>> {
@@ -188,7 +192,7 @@ export class CoreApiClient {
     }, true);
   }
 
-  async acknowledgeReward(serverId: string, rewardId: string, request: AcknowledgeRewardRequest): Promise<ApiSuccess<AcknowledgeRewardResponse>> {
+  async acknowledgeReward(serverId: string, rewardId: string, request: AcknowledgementRewardRequest): Promise<ApiSuccess<AcknowledgementRewardResponse>> {
     return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/rewards/${encodeURIComponent(rewardId)}/ack`, {
       method: "POST",
       body: JSON.stringify(request),
