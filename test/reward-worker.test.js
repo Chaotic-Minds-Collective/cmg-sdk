@@ -59,13 +59,14 @@ test("records acknowledgement failures without pretending delivery was confirmed
   assert.deepEqual(result, { claimed: 1, delivered: 0, failed: 0, acknowledgementFailures: 1 });
 });
 
-for (const kind of ["missing token", "invalid token", "expired lease", "invalid expiry"]) {
+for (const kind of ["missing token", "invalid token", "expired lease", "invalid expiry", "non-string expiry"]) {
   test(`does not grant or acknowledge a reward with ${kind}`, async () => {
     const item = reward("unsafe");
     if (kind === "missing token") delete item.leaseToken;
     if (kind === "invalid token") item.leaseToken = "invalid";
     if (kind === "expired lease") item.leaseExpiresAt = new Date(0).toISOString();
     if (kind === "invalid expiry") item.leaseExpiresAt = "invalid";
+    if (kind === "non-string expiry") item.leaseExpiresAt = ["2099-01-01T00:00:00.000Z"];
     let grants = 0;
     let acknowledgements = 0;
     const client = {

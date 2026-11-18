@@ -32,7 +32,9 @@ export async function processRewardBatch(
   };
 
   for (const reward of claimed.data) {
-    const expiresAt = Date.parse(reward.leaseExpiresAt);
+    const expiresAt = typeof reward.leaseExpiresAt === "string"
+      ? Date.parse(reward.leaseExpiresAt)
+      : Number.NaN;
     if (typeof reward.leaseToken !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reward.leaseToken)
       || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
       result.failed += 1;
