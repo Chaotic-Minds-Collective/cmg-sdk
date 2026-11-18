@@ -32,10 +32,18 @@ export async function processRewardBatch(
   };
 
   for (const reward of claimed.data) {
+    const expiresAt = Date.parse(reward.leaseExpiresAt);
+    if (typeof reward.leaseToken !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reward.leaseToken)
+      || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      result.failed += 1;
+      onError(new Error("A valid, unexpired fenced reward lease is required before delivery."), reward);
+      continue;
+    }
     try {
       const receipt = await deliver(reward);
       try {
         await client.acknowledgeReward(serverId, reward.id, {
+          leaseToken: reward.leaseToken,
           outcome: "delivered",
           response: receipt ?? {},
         });
@@ -48,6 +56,7 @@ export async function processRewardBatch(
       result.failed += 1;
       try {
         await client.acknowledgeReward(serverId, reward.id, {
+          leaseToken: reward.leaseToken,
           outcome: "failed",
           error: error instanceof Error ? error.message.slice(0, 1000) : "Game reward delivery failed.",
         });

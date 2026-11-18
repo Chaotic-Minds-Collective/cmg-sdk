@@ -1,4 +1,4 @@
-export const CORE_API_CONTRACT_VERSION = "0.3.1" as const;
+export const CORE_API_CONTRACT_VERSION = "0.4.0" as const;
 
 export type GameKey = "atlas" | "7dtd" | "ark";
 export type PluginGame = GameKey | "platform";
@@ -98,16 +98,35 @@ export interface ServerHeartbeat {
 export type NormalizedGameEventType =
   | "player.joined"
   | "player.left"
+  | "player.connected"
+  | "player.disconnected"
   | "player.chat"
+  | "player.died"
+  | "player.killed"
+  | "character.created"
+  | "character.transferred"
+  | "tribe.created"
+  | "tribe.member.joined"
+  | "tribe.member.left"
+  | "tribe.updated"
+  | "chat.global"
+  | "chat.tribe"
+  | "ship.sunk"
+  | "ship.retrieved"
+  | "structure.destroyed"
+  | "tame.created"
+  | "tame.died"
   | "server.started"
   | "server.stopped"
-  | "player.died";
+  | "server.state.changed";
 
 export interface NormalizedGameEvent {
   game: GameKey;
   eventId: string;
   eventType: NormalizedGameEventType;
   occurredAt: string;
+  scope?: { clusterId: string; gridId: string; serverId: string };
+  correlationId?: string | null;
   payload: Record<string, unknown>;
 }
 
@@ -168,6 +187,7 @@ export interface RewardDelivery {
   attempts: number;
   idempotencyKey: string;
   leaseExpiresAt: string;
+  leaseToken: string;
 }
 
 export interface ClaimRewardsRequest {
@@ -175,6 +195,7 @@ export interface ClaimRewardsRequest {
 }
 
 export interface AcknowledgeRewardRequest {
+  leaseToken: string;
   outcome: "delivered" | "failed";
   response?: Record<string, unknown>;
   error?: string;
@@ -186,7 +207,6 @@ export interface AcknowledgeRewardResponse {
   rewardId: string;
   outcome?: "delivered" | "failed";
 }
-
 
 export interface ResolvePlayerIdentityRequest {
   provider: string;

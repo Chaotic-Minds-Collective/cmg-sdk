@@ -1,6 +1,6 @@
 import type {
-  AcknowledgementRewardRequest,
-  AcknowledgementRewardResponse,
+  AcknowledgeRewardRequest,
+  AcknowledgeRewardResponse,
   ApiSuccess,
   ClaimRewardsRequest,
   CreateOrderRequest,
@@ -192,7 +192,7 @@ export class CoreApiClient {
     }, true);
   }
 
-  async acknowledgeReward(serverId: string, rewardId: string, request: AcknowledgementRewardRequest): Promise<ApiSuccess<AcknowledgementRewardResponse>> {
+  async acknowledgeReward(serverId: string, rewardId: string, request: AcknowledgeRewardRequest): Promise<ApiSuccess<AcknowledgeRewardResponse>> {
     return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/rewards/${encodeURIComponent(rewardId)}/ack`, {
       method: "POST",
       body: JSON.stringify(request),
