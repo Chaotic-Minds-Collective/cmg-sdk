@@ -10,7 +10,8 @@ const reward = (id) => ({
   deliveryPayload: { item: "medical-kit", quantity: 1 },
   attempts: 1,
   idempotencyKey: `reward-${id}`,
-  leaseExpiresAt: "2026-11-12T17:00:00.000Z",
+  leaseExpiresAt: new Date(Date.now() + 120_000).toISOString(),
+  leaseToken: "ae2134a1-4bd4-4eb8-9ebc-456c38be9caa",
 });
 
 test("delivers claimed rewards and acknowledges with the provider receipt", async () => {
@@ -28,6 +29,7 @@ test("delivers claimed rewards and acknowledges with the provider receipt", asyn
   });
   assert.deepEqual(result, { claimed: 1, delivered: 1, failed: 0, acknowledgementFailures: 0 });
   assert.equal(ack.body.outcome, "delivered");
+  assert.equal(ack.body.leaseToken, reward("r1").leaseToken);
   assert.equal(ack.body.response.gameReceipt, "grant-1");
 });
 
@@ -56,3 +58,24 @@ test("records acknowledgement failures without pretending delivery was confirmed
   const result = await processRewardBatch(client, "server-1", async () => ({ gameReceipt: "grant-3" }));
   assert.deepEqual(result, { claimed: 1, delivered: 0, failed: 0, acknowledgementFailures: 1 });
 });
+
+for (const kind of ["missing token", "invalid token", "expired lease", "invalid expiry", "non-string expiry"]) {
+  test(`does not grant or acknowledge a reward with ${kind}`, async () => {
+    const item = reward("unsafe");
+    if (kind === "missing token") delete item.leaseToken;
+    if (kind === "invalid token") item.leaseToken = "invalid";
+    if (kind === "expired lease") item.leaseExpiresAt = new Date(0).toISOString();
+    if (kind === "invalid expiry") item.leaseExpiresAt = "invalid";
+    if (kind === "non-string expiry") item.leaseExpiresAt = ["2099-01-01T00:00:00.000Z"];
+    let grants = 0;
+    let acknowledgements = 0;
+    const client = {
+      claimRewards: async () => ({ data: [item] }),
+      acknowledgeReward: async () => { acknowledgements += 1; },
+    };
+    const result = await processRewardBatch(client, "server-1", async () => { grants += 1; });
+    assert.equal(grants, 0);
+    assert.equal(acknowledgements, 0);
+    assert.equal(result.failed, 1);
+  });
+}
