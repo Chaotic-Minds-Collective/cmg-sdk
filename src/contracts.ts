@@ -192,6 +192,18 @@ export interface RewardDelivery {
 
 export interface ClaimRewardsRequest {
   limit?: number;
+  leaseSeconds?: number;
+}
+
+export interface RenewRewardLeaseRequest {
+  leaseToken: string;
+  leaseSeconds?: number;
+}
+
+export interface RenewRewardLeaseResponse {
+  renewed: boolean;
+  rewardId: string;
+  leaseExpiresAt: string;
 }
 
 export interface AcknowledgeRewardRequest {

@@ -15,6 +15,8 @@ import type {
   PluginSummary,
   Product,
   RewardDelivery,
+  RenewRewardLeaseRequest,
+  RenewRewardLeaseResponse,
   ResolvePlayerIdentityRequest,
   ResolvePlayerIdentityResponse,
   ServerHeartbeat,
@@ -187,6 +189,13 @@ export class CoreApiClient {
 
   async claimRewards(serverId: string, request: ClaimRewardsRequest = {}): Promise<ApiSuccess<RewardDelivery[]>> {
     return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/rewards/claim`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }, true);
+  }
+
+  async renewRewardLease(serverId: string, rewardId: string, request: RenewRewardLeaseRequest): Promise<ApiSuccess<RenewRewardLeaseResponse>> {
+    return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/rewards/${encodeURIComponent(rewardId)}/renew`, {
       method: "POST",
       body: JSON.stringify(request),
     }, true);
