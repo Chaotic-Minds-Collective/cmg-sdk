@@ -1,7 +1,11 @@
 import type {
   AcknowledgeRewardRequest,
   AcknowledgeRewardResponse,
+  AcknowledgeAtlasColorTokenApplicationRequest,
+  AcknowledgeAtlasColorTokenApplicationResponse,
   ApiSuccess,
+  AtlasColorTokenApplication,
+  ClaimAtlasColorTokenApplicationsRequest,
   ClaimRewardsRequest,
   CreateOrderRequest,
   CreateOrderResponse,
@@ -17,6 +21,8 @@ import type {
   RewardDelivery,
   RenewRewardLeaseRequest,
   RenewRewardLeaseResponse,
+  RenewAtlasColorTokenApplicationLeaseRequest,
+  RenewAtlasColorTokenApplicationLeaseResponse,
   ResolvePlayerIdentityRequest,
   ResolvePlayerIdentityResponse,
   ServerHeartbeat,
@@ -196,6 +202,27 @@ export class CoreApiClient {
 
   async renewRewardLease(serverId: string, rewardId: string, request: RenewRewardLeaseRequest): Promise<ApiSuccess<RenewRewardLeaseResponse>> {
     return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/rewards/${encodeURIComponent(rewardId)}/renew`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }, true);
+  }
+
+  async claimAtlasColorTokenApplications(serverId: string, request: ClaimAtlasColorTokenApplicationsRequest = {}): Promise<ApiSuccess<AtlasColorTokenApplication[]>> {
+    return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/atlas/color-token-applications/claim`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }, true);
+  }
+
+  async renewAtlasColorTokenApplicationLease(serverId: string, applicationId: string, request: RenewAtlasColorTokenApplicationLeaseRequest): Promise<ApiSuccess<RenewAtlasColorTokenApplicationLeaseResponse>> {
+    return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/atlas/color-token-applications/${encodeURIComponent(applicationId)}/renew`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }, true);
+  }
+
+  async acknowledgeAtlasColorTokenApplication(serverId: string, applicationId: string, request: AcknowledgeAtlasColorTokenApplicationRequest): Promise<ApiSuccess<AcknowledgeAtlasColorTokenApplicationResponse>> {
+    return this.request(`/integrations/servers/${encodeURIComponent(serverId)}/atlas/color-token-applications/${encodeURIComponent(applicationId)}/ack`, {
       method: "POST",
       body: JSON.stringify(request),
     }, true);
