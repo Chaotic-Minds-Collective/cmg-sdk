@@ -25,8 +25,7 @@ export class RewardLeaseRenewalError extends Error {
   }
 }
 
-type RewardWorkerClient = Pick<CoreApiClient, "claimRewards" | "acknowledgeReward">
-  & Partial<Pick<CoreApiClient, "renewRewardLease">>;
+type RewardWorkerClient = Pick<CoreApiClient, "claimRewards" | "acknowledgeReward" | "renewRewardLease">;
 
 function validLease(reward: RewardDelivery): boolean {
   const expiresAt = typeof reward.leaseExpiresAt === "string" ? Date.parse(reward.leaseExpiresAt) : Number.NaN;
@@ -59,11 +58,11 @@ async function deliverWithLeaseRenewal(
   let stopped = false;
 
   const scheduleRenewal = () => {
-    if (!stopped && !renewalError && client.renewRewardLease) {
+    if (!stopped && !renewalError) {
       renewalTimer = setTimeout(() => {
         renewalInFlight = (async () => {
           try {
-            const result = await client.renewRewardLease!(serverId, reward.id, {
+            const result = await client.renewRewardLease(serverId, reward.id, {
               leaseToken: reward.leaseToken,
               leaseSeconds,
             });
@@ -124,6 +123,9 @@ export async function processRewardBatch(
     onError?: (error: unknown, reward: RewardDelivery) => void;
   } = {}
 ): Promise<RewardBatchResult> {
+  if (typeof client.renewRewardLease !== "function") {
+    throw new TypeError("CoreApiClient must support reward lease renewal before claiming work");
+  }
   if (!Number.isInteger(leaseSeconds) || leaseSeconds < 15 || leaseSeconds > 300) {
     throw new TypeError("leaseSeconds must be an integer between 15 and 300");
   }
