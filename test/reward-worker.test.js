@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { processRewardBatch } from "../dist/reward-worker.js";
 
+const renewLease = async (_serverId, rewardId) => ({
+  data: { renewed: true, rewardId, leaseExpiresAt: new Date(Date.now() + 120_000).toISOString() },
+});
+
 const reward = (id) => ({
   id,
   entitlementId: "entitlement-1",
@@ -19,6 +23,7 @@ test("delivers claimed rewards and acknowledges with the provider receipt", asyn
   let claim;
   const client = {
     claimRewards: async (_serverId, request) => { claim = request; return { data: [reward("r1")] }; },
+    renewRewardLease: renewLease,
     acknowledgeReward: async (_serverId, rewardId, body) => {
       ack = { rewardId, body };
       return { data: { accepted: true, duplicate: false, rewardId, outcome: "delivered" } };
@@ -39,6 +44,7 @@ test("reports game delivery failures back to Core for retry", async () => {
   let ack;
   const client = {
     claimRewards: async () => ({ data: [reward("r2")] }),
+    renewRewardLease: renewLease,
     acknowledgeReward: async (_serverId, rewardId, body) => {
       ack = { rewardId, body };
       return { data: { accepted: true, duplicate: false, rewardId, outcome: "failed" } };
@@ -55,6 +61,7 @@ test("reports game delivery failures back to Core for retry", async () => {
 test("records acknowledgement failures without pretending delivery was confirmed", async () => {
   const client = {
     claimRewards: async () => ({ data: [reward("r3")] }),
+    renewRewardLease: renewLease,
     acknowledgeReward: async () => { throw new Error("Core unavailable"); },
   };
   const result = await processRewardBatch(client, "server-1", async () => ({ gameReceipt: "grant-3" }));
@@ -121,6 +128,7 @@ for (const kind of ["missing token", "invalid token", "expired lease", "invalid 
     let acknowledgements = 0;
     const client = {
       claimRewards: async () => ({ data: [item] }),
+      renewRewardLease: renewLease,
       acknowledgeReward: async () => { acknowledgements += 1; },
     };
     const result = await processRewardBatch(client, "server-1", async () => { grants += 1; });
