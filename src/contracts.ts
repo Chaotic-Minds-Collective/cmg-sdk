@@ -195,6 +195,49 @@ export interface ClaimRewardsRequest {
   leaseSeconds?: number;
 }
 
+export interface AtlasColorTokenApplication {
+  applicationId: string;
+  entitlementId: string;
+  tokenKind: "ship" | "tame" | "armor";
+  ownerExternalId: string;
+  assetId: string;
+  selectedColor: unknown;
+  serverId: string;
+  clusterId: string;
+  gridId: string;
+  attempts: number;
+  leaseExpiresAt: string;
+  leaseToken: string;
+}
+
+export interface ClaimAtlasColorTokenApplicationsRequest {
+  limit?: number;
+}
+
+export interface RenewAtlasColorTokenApplicationLeaseRequest {
+  leaseToken: string;
+  leaseSeconds?: number;
+}
+
+export interface RenewAtlasColorTokenApplicationLeaseResponse {
+  renewed: boolean;
+  applicationId: string;
+  leaseExpiresAt: string;
+}
+
+export interface AcknowledgeAtlasColorTokenApplicationRequest {
+  leaseToken: string;
+  outcome: "applied" | "failed";
+  errorCode?: string;
+}
+
+export interface AcknowledgeAtlasColorTokenApplicationResponse {
+  accepted: boolean;
+  duplicate: boolean;
+  applicationId: string;
+  status: "applied" | "failed";
+}
+
 export interface RenewRewardLeaseRequest {
   leaseToken: string;
   leaseSeconds?: number;

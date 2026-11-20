@@ -101,3 +101,37 @@ test("resolves only verified external player identities through the server-scope
   assert.match(captured.url, /\/players\/resolve$/);
   assert.equal(JSON.parse(captured.init.body).provider, "steam");
 });
+
+
+test("claims, renews, and acknowledges ATLAS color-token applications through the server-scoped API", async () => {
+  const captured = [];
+  const client = new CoreApiClient({
+    baseUrl: "https://core.example.test",
+    token: "synthetic-color-token-worker-token",
+    fetchImpl: async (url, init) => {
+      captured.push({ url: String(url), init });
+      const path = String(url);
+      if (path.endsWith("/claim")) return new Response(JSON.stringify({ data: [] }), { status: 200 });
+      if (path.endsWith("/renew")) return new Response(JSON.stringify({ data: { renewed: true, applicationId: "application-1", leaseExpiresAt: "2026-11-20T18:00:00.000Z" } }), { status: 200 });
+      return new Response(JSON.stringify({ data: { accepted: true, duplicate: false, applicationId: "application-1", status: "applied" } }), { status: 202 });
+    },
+  });
+
+  const claimed = await client.claimAtlasColorTokenApplications("server-1", { limit: 4 });
+  assert.deepEqual(claimed.data, []);
+  const renewed = await client.renewAtlasColorTokenApplicationLease("server-1", "application-1", {
+    leaseToken: "00000000-0000-4000-8000-000000000000",
+    leaseSeconds: 180,
+  });
+  assert.equal(renewed.data.renewed, true);
+  const acknowledged = await client.acknowledgeAtlasColorTokenApplication("server-1", "application-1", {
+    leaseToken: "00000000-0000-4000-8000-000000000000",
+    outcome: "applied",
+  });
+  assert.equal(acknowledged.data.status, "applied");
+  assert.match(captured[0].url, /\/atlas\/color-token-applications\/claim$/);
+  assert.match(captured[1].url, /\/atlas\/color-token-applications\/application-1\/renew$/);
+  assert.equal(JSON.parse(captured[1].init.body).leaseSeconds, 180);
+  assert.match(captured[2].url, /\/atlas\/color-token-applications\/application-1\/ack$/);
+  assert.equal(captured[0].init.headers.get("Authorization"), "Bearer synthetic-color-token-worker-token");
+});
