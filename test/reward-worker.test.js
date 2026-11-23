@@ -137,3 +137,41 @@ for (const kind of ["missing token", "invalid token", "expired lease", "invalid 
     assert.equal(result.failed, 1);
   });
 }
+
+test("does not acknowledge when an in-flight renewal fails after the delivery handler returns", async () => {
+  let ackCalls = 0;
+  let startRenewal;
+  let finishHandler;
+  let rejectRenewal;
+  const renewalStarted = new Promise((resolve) => { startRenewal = resolve; });
+  const handlerFinished = new Promise((resolve) => { finishHandler = resolve; });
+  const renewalPending = new Promise((_resolve, reject) => { rejectRenewal = reject; });
+
+  const client = {
+    claimRewards: async () => ({ data: [reward("r6")] }),
+    renewRewardLease: async () => {
+      startRenewal();
+      return renewalPending;
+    },
+    acknowledgeReward: async () => { ackCalls += 1; },
+  };
+
+  const processing = processRewardBatch(client, "server-1", async () => {
+    await renewalStarted;
+    finishHandler();
+    return { gameReceipt: "grant-6" };
+  }, { leaseSeconds: 15, renewalIntervalMs: 5 });
+
+  await handlerFinished;
+  rejectRenewal(new Error("lease lost after handler completion"));
+
+  const result = await processing;
+  assert.equal(ackCalls, 0);
+  assert.deepEqual(result, {
+    claimed: 1,
+    delivered: 0,
+    failed: 0,
+    acknowledgementFailures: 0,
+    leaseRenewalFailures: 1,
+  });
+});
