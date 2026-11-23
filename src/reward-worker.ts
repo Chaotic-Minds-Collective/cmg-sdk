@@ -85,21 +85,31 @@ async function deliverWithLeaseRenewal(
   };
 
   scheduleRenewal();
+
+  let receipt: Record<string, unknown> | void;
+  let deliveryError: unknown;
+  let deliveryFailed = false;
   try {
-    const receipt = await deliver(reward, { signal: controller.signal });
-    if (renewalError) throw renewalError;
-    if (leaseExpiresAt <= Date.now()) {
-      throw new RewardLeaseRenewalError("The reward lease expired before the game grant completed.");
-    }
-    return receipt;
+    receipt = await deliver(reward, { signal: controller.signal });
   } catch (error) {
-    if (renewalError) throw renewalError;
-    throw error;
+    deliveryFailed = true;
+    deliveryError = error;
   } finally {
     stopped = true;
     if (renewalTimer) clearTimeout(renewalTimer);
+    // A renewal may already be in flight when the handler finishes. Wait for
+    // it before deciding whether this receipt is safe to acknowledge.
     if (renewalInFlight) await renewalInFlight;
   }
+
+  // Check only after the in-flight renewal settles: it may fail after the
+  // delivery handler returns but before this worker can safely acknowledge.
+  if (renewalError) throw renewalError;
+  if (deliveryFailed) throw deliveryError;
+  if (leaseExpiresAt <= Date.now()) {
+    throw new RewardLeaseRenewalError("The reward lease expired before the game grant completed.");
+  }
+  return receipt;
 }
 
 /**
