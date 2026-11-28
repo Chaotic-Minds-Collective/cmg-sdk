@@ -1,6 +1,6 @@
 # Fenced reward-lease rollout (Core contract 0.4.0)
 
-Coordinate this SDK with the Core reward-lease renewal API before enabling reward fulfillment. Core must apply the additive reward lease-token and renewal migrations and deploy its claim/renew/ack routes first. This SDK change does not enable a worker or grant items by itself.
+Coordinate this SDK with the Core reward-lease renewal API before enabling reward fulfillment. Core ships the additive reward lease-token migration (`025_reward_lease_fencing.sql`), the renewal permission (`031_reward_lease_renewal.sql`) and the claim/renew/ack routes; apply those migrations and deploy Core before enabling fulfillment. This SDK change does not enable a worker or grant items by itself.
 
 ## Worker contract
 
@@ -16,7 +16,7 @@ The worker and Core API are available as the SDK subpaths `@chaotic-minds-gaming
 
 ## Rollout order
 
-1. Merge and deploy Core's reward lease renewal API and apply its migration.
+1. Apply Core's reward lease-token and renewal migrations and deploy Core with the claim/renew/ack routes.
 2. Publish/use this SDK version.
 3. Implement the game-specific delivery handler with durable idempotency and game-thread dispatch.
 4. Validate the complete flow against an isolated server and a test player.
